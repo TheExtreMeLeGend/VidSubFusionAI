@@ -1,20 +1,41 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Combobox
-from translate import translate_srt_file
+from translate import translate_srt_file, set_api_keys
 from video_downloader import download_video
 from audio_extractor import extract_audio
 from transcriber import transcribe_audio
 from merge_subtitles import merge_video_and_subtitles, sanitize_filename, to_latin
 import os
-import tempfile
-import shutil
+import json
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
+KEYS_FILE = "api_keys.json"
+
+def load_api_keys():
+    if os.path.exists(KEYS_FILE):
+        with open(KEYS_FILE, 'r') as file:
+            keys = json.load(file)
+            return keys.get("deepl_key", ""), keys.get("openai_key", "")
+    return "", ""
+
+def save_api_keys(deepl_key, openai_key):
+    keys = {
+        "deepl_key": deepl_key,
+        "openai_key": openai_key
+    }
+    with open(KEYS_FILE, 'w') as file:
+        json.dump(keys, file)
+
 def process_video():
     url = url_entry.get()
+    deepl_key = deepl_key_entry.get()
+    openai_key = openai_key_entry.get()
+    set_api_keys(deepl_key, openai_key)
+    save_api_keys(deepl_key, openai_key)
+    
     if not url:
         messagebox.showwarning("Input Error", "Please enter a URL.")
         return
@@ -85,13 +106,25 @@ root.title("SRT Translator and Video Processor")
 
 # Enhance UI
 root.configure(bg="#f0f0f0")
-root.geometry("400x450")
+root.geometry("400x550")
 
 url_label = tk.Label(root, text="Enter video URL:", bg="#f0f0f0", font=("Helvetica", 10))
 url_label.pack(pady=(20, 0))
 
 url_entry = tk.Entry(root, font=("Helvetica", 10), width=50)
 url_entry.pack(pady=10)
+
+deepl_key_label = tk.Label(root, text="Enter DeepL API Key:", bg="#f0f0f0", font=("Helvetica", 10))
+deepl_key_label.pack(pady=(20, 0))
+
+deepl_key_entry = tk.Entry(root, font=("Helvetica", 10), width=50)
+deepl_key_entry.pack(pady=10)
+
+openai_key_label = tk.Label(root, text="Enter OpenAI API Key:", bg="#f0f0f0", font=("Helvetica", 10))
+openai_key_label.pack(pady=(20, 0))
+
+openai_key_entry = tk.Entry(root, font=("Helvetica", 10), width=50)
+openai_key_entry.pack(pady=10)
 
 language_label = tk.Label(root, text="Select target language:", bg="#f0f0f0", font=("Helvetica", 10))
 language_label.pack(pady=(20, 0))
@@ -121,5 +154,10 @@ service_combobox.pack(pady=10)
 
 process_button = tk.Button(root, text="Process Video", command=process_video, bg="#2196F3", fg="white", font=("Helvetica", 12, "bold"), padx=20, pady=10)
 process_button.pack(pady=20)
+
+# Load and set saved API keys
+saved_deepl_key, saved_openai_key = load_api_keys()
+deepl_key_entry.insert(0, saved_deepl_key)
+openai_key_entry.insert(0, saved_openai_key)
 
 root.mainloop()
